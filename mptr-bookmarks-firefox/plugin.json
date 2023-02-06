@@ -1,0 +1,14 @@
+{
+  "ID": "98CCBD22DDC747C8A0D87D8B4FDC2F38",
+  "Disabled": false,
+  "ActionKeyword": "bm",
+  "Name": "Bookmarks: Firefox",
+  "Author": "novafaen",
+  "Version": "1.0.0",
+  "Language": "csharp",
+  "Website": "https://github.com/novafaen/mptr-bookmarks-firefox",
+  "ExecuteFileName": "mptr-bookmarks-firefox.dll",
+  "IsGlobal": false,
+  "IcoPathDark": "images\\bookmarks.dark.png",
+  "IcoPathLight": "images\\bookmarks.light.png"
+}
