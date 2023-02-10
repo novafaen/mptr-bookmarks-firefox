@@ -1,6 +1,8 @@
 ﻿using ManagedCommon;
 using Microsoft.Data.Sqlite;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Runtime.InteropServices;
 using Wox.Plugin;
 
@@ -15,8 +17,7 @@ namespace mptr_bookmarks_firefox
 
         public string Description => "Microsoft Powertoys Run plugin for accessing Firefox bookmarks.";
 
-        private const string firefoxSettingsPath = "Mozilla\\Firefox\\Profiles\\";
-        private List<KeyValuePair<string, string>> bookmarks = new();
+        private BookmarksFirefox bookmarksFirefox = new BookmarksFirefox();
 
         public List<Result> Query(Query query)
         {
@@ -25,19 +26,38 @@ namespace mptr_bookmarks_firefox
                 return new List<Result>(0);
             }
 
-            var value = query.Search.Trim().ToLower();
+            string value = query.Search.Trim().ToLower();
 
             if (string.IsNullOrEmpty(value))
             {
                 return new List<Result>(0);
             }
 
+            // for debugging purposes
+            if (String.Equals(value, "!!status"))
+            {
+
+            }
+
+            List<KeyValuePair<string, string>> bookmarks = new List<KeyValuePair<string, string>>();
+
+            if (bookmarksFirefox.HaveBookmarks())
+            {
+                bookmarks.AddRange(bookmarksFirefox.GetBookmarks());
+            }
+
+            return generateResultList(value, bookmarks);
+        }
+
+        private List<Result> generateResultList(string value, List<KeyValuePair<string, string>> bookmarks)
+        {
             List<Result> result = new();
 
             foreach (KeyValuePair<string, string> bookmark in bookmarks)
             {
                 // filter out what user want
-                if (bookmark.Key.ToLower().Contains(value) || bookmark.Value.ToLower().Contains(value)) {
+                if (bookmark.Key.ToLower().Contains(value) || bookmark.Value.ToLower().Contains(value))
+                {
                     result.Add(
                         new Result
                         {
@@ -62,57 +82,6 @@ namespace mptr_bookmarks_firefox
             Context = context;
             Context.API.ThemeChanged += OnThemeChanged;
             UpdateIconPath(Context.API.GetCurrentTheme());
-
-            string fullFirefoxSetingsPath = Environment.ExpandEnvironmentVariables("%AppData%") + "\\" + firefoxSettingsPath;
-            string[] profilePaths = Directory.GetDirectories(fullFirefoxSetingsPath);
-
-            string? pathBookmarksFile = null;
-            foreach (string profilePath in profilePaths)
-            {   
-                string[] profileFiles = Directory.GetFiles(profilePath);
-                foreach (string profileFile in profileFiles)
-                {
-                    string fileName = Path.GetFileName(profileFile);
-                    if (String.Equals(fileName, "places.sqlite", StringComparison.OrdinalIgnoreCase)) {
-                        pathBookmarksFile = profileFile;
-                        break;
-                    }
-                }
-            }
-
-            if (pathBookmarksFile is null)
-            {
-                return;  // no bookmarks file found.
-            }
-
-            try
-            {
-                string connectionString = string.Format("Data Source={0};Version=3;Read Only=True", pathBookmarksFile);
-                SqliteConnection? sqlite_conn = null;
-
-                sqlite_conn = new SqliteConnection("Data Source = " + pathBookmarksFile);
-                sqlite_conn.Open();
-                
-                SqliteDataReader sqlite_datareader;
-                SqliteCommand sqlite_cmd;
-                sqlite_cmd = sqlite_conn.CreateCommand();
-                sqlite_cmd.CommandText = "SELECT b.title, p.url FROM moz_bookmarks as b LEFT JOIN moz_places as p WHERE b.fk = p.id AND b.title <> ''";
-                sqlite_cmd.CreateParameter();
-                sqlite_datareader = sqlite_cmd.ExecuteReader();
-                while (sqlite_datareader.Read())
-                {
-                    bookmarks.Add(
-                        new KeyValuePair<string, string>(sqlite_datareader.GetString(0), sqlite_datareader.GetString(1))
-                    );
-                }
-            }
-            catch (Exception exc)
-            {
-                // better error messages needed
-                bookmarks.Add(
-                    new KeyValuePair<string, string>("Error!", "Unexpected SQL error." + exc.Message)
-                );
-            }
         }
 
         private void UpdateIconPath(Theme theme)
@@ -133,7 +102,7 @@ namespace mptr_bookmarks_firefox
         }
 
         // originates from https://brockallen.com/2016/09/24/process-start-for-urls-on-net-core/
-        private void OpenUrl(string url)
+        private static void OpenUrl(string url)
         {
             try
             {
