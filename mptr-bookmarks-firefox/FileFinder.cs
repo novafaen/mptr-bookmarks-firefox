@@ -1,13 +1,12 @@
-﻿using System;
-using System.IO;
-
-namespace mptr_bookmarks_firefox
+﻿namespace mptr_bookmarks_firefox
 {
+    public readonly record struct BookmarkFile(string Path, DateTime LastUpdated);
+
     public class FileFinder
     {
-        public static List<string> FindFilesInDirectory(string fileName, string path)
+        public static List<BookmarkFile> FindFilesInDirectory(string fileName, string path)
         {
-            List<string> filesFound = new();
+            List<BookmarkFile> filesFound = new();
             try
             {
                 string[] files = Directory.GetFiles(path);
@@ -16,8 +15,7 @@ namespace mptr_bookmarks_firefox
                 {
                     if (string.Equals(Path.GetFileName(file), fileName, StringComparison.OrdinalIgnoreCase))
                     {
-                        Console.WriteLine(file);
-                        filesFound.Add(file);
+                        filesFound.Add(new BookmarkFile(file, new FileInfo(file).LastWriteTime));
                     }
                 }
             }

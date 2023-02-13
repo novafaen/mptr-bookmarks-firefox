@@ -1,8 +1,5 @@
 ﻿using ManagedCommon;
-using Microsoft.Data.Sqlite;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Runtime.InteropServices;
 using Wox.Plugin;
 
@@ -39,7 +36,7 @@ namespace mptr_bookmarks_firefox
 
             }
 
-            List<KeyValuePair<string, string>> bookmarks = new List<KeyValuePair<string, string>>();
+            List<Bookmark> bookmarks = new List<Bookmark>();
 
             if (bookmarksFirefox.HaveBookmarks())
             {
@@ -49,24 +46,24 @@ namespace mptr_bookmarks_firefox
             return generateResultList(value, bookmarks);
         }
 
-        private List<Result> generateResultList(string value, List<KeyValuePair<string, string>> bookmarks)
+        private List<Result> generateResultList(string value, List<Bookmark> bookmarks)
         {
             List<Result> result = new();
 
-            foreach (KeyValuePair<string, string> bookmark in bookmarks)
+            foreach (Bookmark bookmark in bookmarks)
             {
                 // filter out what user want
-                if (bookmark.Key.ToLower().Contains(value) || bookmark.Value.ToLower().Contains(value))
+                if (bookmark.Title.ToLower().Contains(value) || bookmark.URL.ToLower().Contains(value))
                 {
                     result.Add(
                         new Result
                         {
-                            Title = bookmark.Key,
-                            SubTitle = bookmark.Value,
+                            Title = bookmark.Title,
+                            SubTitle = bookmark.URL,
                             IcoPath = IconPath,
                             Action = e =>
                             {
-                                OpenUrl(bookmark.Value);
+                                OpenUrl(bookmark.URL);
                                 return true;
                             },
                         }

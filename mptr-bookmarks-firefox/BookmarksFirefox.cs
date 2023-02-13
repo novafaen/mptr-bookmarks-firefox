@@ -1,11 +1,13 @@
 ﻿using Microsoft.Data.Sqlite;
-using System;
 
 namespace mptr_bookmarks_firefox
 {
+    public readonly record struct Bookmark(string Title, string URL);
+
     public class BookmarksFirefox
     {
-        private List<string> bookmarkFiles = new();
+        private List<BookmarkFile> bookmarkFiles = new();
+        private List<Bookmark>? bookmarks = new();
 
         public BookmarksFirefox()
         {
@@ -52,15 +54,23 @@ namespace mptr_bookmarks_firefox
 
         public bool HaveBookmarks() => bookmarkFiles.Count > 0;
 
-        public List<string> getBookmarkFilesPaths() => bookmarkFiles;
-
-        public List<KeyValuePair<string, string>> GetBookmarks()
+        public List<Bookmark> GetBookmarks()
         {
-            // todo: check if file is changed since last time and re-read, use cached results otherwise
+            // check if bookmark file have been updated since last read.
+            bool bookmarksUpdated = false;
+            foreach (BookmarkFile bookmarkFile in bookmarkFiles)
+            {
+                if (bookmarkFile.LastUpdated >= FileFinder.LastUpdated(bookmarkFile.Path)) {
+                    // bookmarks have not been updated
+                    bookmarksUpdated = true;
+                }
+            }
+            
+            if (!bookmarksUpdated) {
+                return bookmarks;
+            }
 
-            List<KeyValuePair<string, string>>? bookmarks = new();
-
-            foreach (string bookmarkFile in bookmarkFiles)
+            foreach (BookmarkFile bookmarkFile in bookmarkFiles)
             {
                 SqliteConnection sqlite_conn = new(string.Format("Data Source={0};Mode=ReadOnly", bookmarkFile));
                 sqlite_conn.Open();
@@ -72,7 +82,7 @@ namespace mptr_bookmarks_firefox
                 while (sqlite_datareader.Read())
                 {
                     bookmarks.Add(
-                        new KeyValuePair<string, string>(sqlite_datareader.GetString(0), sqlite_datareader.GetString(1))
+                        new Bookmark(sqlite_datareader.GetString(0), sqlite_datareader.GetString(1))
                     );
                 }
             }
